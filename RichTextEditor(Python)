@@ -1,0 +1,280 @@
+from tkinter import *
+from tkinter import filedialog
+from tkinter import messagebox
+from tkinter import colorchooser
+from tkinter import font
+import win32api
+import win32print
+import os ,sys
+
+root = Tk()
+root.title('TextEditor')
+
+root.geometry("1200x620")
+
+global open_status_file
+open_status_file = False
+
+global variable
+variable= False
+
+def popup():
+    messagebox.showinfo("Saved", "Your Document has been saved")
+
+def new_file():
+    my_text.delete("1.0", END)
+    root.title('New File- TextPad!')
+    status_bar.config(text="New File   ")
+
+    global open_status_file
+    open_status_file = False
+
+def open_file():
+    #deletes previous text
+    my_text.delete("1.0", END)
+
+    #Grab FileName
+    text_file = filedialog.askopenfilename(initialdir='E:\save', title= "Open File",filetypes=(('Text Files', '*.txt'),('HTML Files', '*.html'),('All Files','*.*')))
+    if text_file:
+     global open_status_file
+    open_status_file=text_file
+
+    #Update Status bars
+    name=text_file
+    status_bar.config(text=f'{name}    f')
+    name=name.replace('E:\save', "")
+    root.title(f'{name} TextPad!')
+
+    #Open the file
+    text_file = open(text_file, 'r')
+    read=text_file.read()
+    #aadd file to textbox
+    my_text.insert(END, read)
+    #close the opened file
+    text_file.close()
+
+
+def save_as_file():
+    text_file = filedialog.asksaveasfilename(defaultextension='.*',initialdir='E:\save', title="Save File",filetypes=(('Text Files', '*.txt'),('HTML Files', '*.html'),('All Files','*.*')))
+    if text_file:
+        #update statusbar
+        name=text_file
+        status_bar.config(text=f'Saved: {name}    f')
+        name = name.replace('E:\save', "")
+        root.title(f'{name} TextPad!')
+
+        #savefile
+        text_file= open(text_file, 'w')
+        text_file.write(my_text.get(1.0,END))
+        #closeFile
+        text_file.close()
+
+#savefile
+def save_file():
+    global open_status_file
+    if open_status_file:
+        # savefile
+        text_file = open(open_status_file, 'w')
+        text_file.write(my_text.get(1.0, END))
+        # closeFile
+        text_file.close()
+        #popupbox
+        popup()
+        status_bar.config(text=f'Saved: {open_status_file}    f')
+    else:
+        save_as_file()
+
+def cut_text(e):
+    global variable
+    #check to see if keyboardshort cut
+    if e:
+        variable= root.clipboard_get()
+    else:
+      if my_text.selection_get():
+        #grab selected textbox
+        variable= my_text.selection_get()
+        #delete slectbox
+        my_text.delete("sel.first", "sel.last")
+        # clear the clipboard then append
+        root.clipboard_clear()
+        root.clipboard_append(variable)
+
+def copy_text(e):
+    global variable
+    #chcek to see if we used keyboard shortcut
+    if e:
+        variable=root.clipboard_get()
+
+    if my_text.selection_get():
+        # grab selected textbox
+        variable = my_text.selection_get()
+        #clear the clipboard then append
+        root.clipboard_clear()
+        root.clipboard_append(variable)
+
+def paste_text(e):
+    global variable
+    #chcek if keyboard shortcut used
+    if e:
+        variable= root.clipboard_get()
+    else:
+        if variable:
+            position=my_text.index(INSERT)
+            my_text.insert(position, variable)
+
+def bold_it():
+    global open_status_file
+    #create font
+    bold_font=font.Font(my_text,my_text.cget("font"))
+    bold_font.configure(weight= "bold")
+    #create tag
+    my_text.tag_configure("bold", font=bold_font)
+    #define current tags
+    current_tags= my_text.tag_names("sel.first")
+    #ifstatment to see if tag has been set
+    if "bold" in current_tags:
+        my_text.tag_remove("bold", "sel.first","sel.last")
+    else:
+        my_text.tag_add("bold","sel.first","sel.last")
+        text_file = open(open_status_file, 'w')
+        text_file.write(my_text.get(1.0, END))
+
+
+def italics_it():
+    # create font
+    italics_font = font.Font(my_text, my_text.cget("font"))
+    italics_font.configure(slant="italic")
+    # create tag
+    my_text.tag_configure("italic", font=italics_font)
+    # define current tags
+    current_tags = my_text.tag_names("sel.first")
+    # ifstatment to see if tag has been set
+    if "italic" in current_tags:
+        my_text.tag_remove("italic", "sel.first", "sel.last")
+    else:
+        my_text.tag_add("italic", "sel.first", "sel.last")
+
+#function for text color
+def text_colors():
+    #pick a color
+    my_color=colorchooser.askcolor()[1]
+    if my_color:
+        color_font = font.Font(my_text, my_text.cget("font"))
+        color_font.configure(slant="italic")
+        # create tag
+        my_text.tag_configure("colored", font=color_font, foreground=my_color)
+        # define current tags
+        current_tags = my_text.tag_names("sel.first")
+        # ifstatment to see if tag has been set
+        if "colored" in current_tags:
+            my_text.tag_remove("colored", "sel.first", "sel.last")
+        else:
+            my_text.tag_add("colored", "sel.first", "sel.last")
+#change background color
+def bg_color():
+    my_color=colorchooser.askcolor()[1]
+    if my_color:
+        my_text.config(bg=my_color) #backgroundcolor
+
+def all_text_color():
+    my_color = colorchooser.askcolor()[1]
+    if my_color:
+        my_text.config(fg=my_color) #foreground color
+
+def print_file():
+  #printer_name= win32print.GetDefaultPrinter()
+  #status_bar.config(text=printer_name)
+    file_to_print=filedialog.askopenfilename(initialdir='E:\save', title= "Open File",filetypes=(('Text Files', '*.txt'),('All Files','*.*')))
+
+    if file_to_print:
+        win32api.ShellExecute(0, "print", file_to_print, None, ".",0)
+
+def select_all(e):
+    my_text.tag_add('sel','1.0',END)
+
+def clear_all():
+    my_text.delete(1.0, END)
+
+
+#toolbar
+toolbar_frame= Frame(root)
+toolbar_frame.pack(fill=X)
+
+my_frame = Frame(root)
+my_frame.pack(pady=5)
+#scrollbar
+text_scroll= Scrollbar(my_frame)
+text_scroll.pack(side=RIGHT, fill=Y)
+#horizontal scrollbar
+hor_scroll=Scrollbar(my_frame, orient='horizontal')
+hor_scroll.pack(side=BOTTOM, fill=X)
+#textbox
+my_text = Text(my_frame, width=97, height=23, font=("Helvetica", 16), selectbackground="cyan", selectforeground="black", undo=True, yscrollcommand=text_scroll.set, wrap="none", xscrollcommand=hor_scroll.set)
+my_text.pack()
+
+text_scroll.config(command=my_text.yview)
+hor_scroll.config(command=my_text.xview)
+
+#create menu
+my_menu=Menu(root)
+root.config(menu=my_menu)
+
+#add file menu
+file_menu=Menu(my_menu, tearoff=False)
+my_menu.add_cascade(label="File", menu=file_menu)
+file_menu.add_command(label="Open", command=open_file)
+file_menu.add_command(label="New", command=new_file)
+file_menu.add_command(label="Save", command=save_file)
+file_menu.add_command(label="Save As", command=save_as_file)
+file_menu.add_separator()
+file_menu.add_command(label="Print", command=print_file)
+file_menu.add_separator()
+file_menu.add_command(label="Exit", command=root.quit)
+
+#add edit menu
+edit_menu=Menu(my_menu, tearoff=False)
+my_menu.add_cascade(label="Edit", menu=edit_menu)
+edit_menu.add_command(label="Cut", command=lambda: cut_text(False), accelerator="(Ctrl+x)")
+edit_menu.add_command(label="Copy", command=lambda: copy_text(False), accelerator="(Ctrl+c)")
+edit_menu.add_command(label="Paste", command=lambda: paste_text(False), accelerator="(Ctrl+v")
+edit_menu.add_separator()
+edit_menu.add_command(label="Undo", command=my_text.edit_undo, accelerator= "(Ctrl+z)")
+edit_menu.add_command(label="Redo", command=my_text.edit_redo, accelerator= "(Ctrl+y)")
+edit_menu.add_separator()
+edit_menu.add_command(label="Select All", command=lambda : select_all(True), accelerator= "(Ctrl+a)")
+edit_menu.add_command(label="Clear", command=clear_all)
+
+#color menu
+color_menu=Menu(my_menu, tearoff=False)
+my_menu.add_cascade(label="Colors", menu=color_menu)
+color_menu.add_command(label="Selected Text", command=text_colors)
+color_menu.add_command(label="Change All Text", command=all_text_color)
+color_menu.add_command(label="Background", command=bg_color)
+
+
+#add status bar to bottom of app
+status_bar = Label(root, text= 'Ready   ',anchor=E)
+status_bar.pack(fill=X, side=BOTTOM, ipady=5)
+
+#edit Bindings
+root.bind('<Control-Key-x>',cut_text)
+root.bind('<Control-Key-c>',copy_text)
+root.bind('<Control-Key-v>',paste_text)
+root.bind('<Control-Key-a>',select_all)
+
+#bold and itallic buttons
+bold_button= Button(toolbar_frame, text="Bold", command=bold_it)
+bold_button.grid(row=0, column=0, sticky=W, padx=5)
+italics_button= Button(toolbar_frame, text="Italics", command=italics_it)
+italics_button.grid(row=0, column=1, padx=5)
+#undo redo buttons
+undo_button= Button(toolbar_frame, text="Undo", command=my_text.edit_undo)
+undo_button.grid(row=0, column=2, padx=5)
+redo_button= Button(toolbar_frame, text="Redo", command=my_text.edit_redo)
+redo_button.grid(row=0, column=3,padx=5)
+
+#text color button
+text_color=Button(toolbar_frame, text="Text Color", command=text_colors)
+text_color.grid(row=0, column=4, padx=5)
+
+root.mainloop()
